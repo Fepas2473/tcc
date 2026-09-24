@@ -1,121 +1,265 @@
-
+```cpp
 // Área de inclusão das bibliotecas
 //-----------------------------------------------------------------------------------------------------------------------
+
 #include <stdio.h>
 #include <string.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
 #include "esp_log.h"
 
-#include "HCF_SOFT.h"  
-#include "HCF_DHT.h"
-#include "driver/gpio.h"
+#include "HCF_SOFT.h"
 #include "HCF_WNOLOGY.h"
 
-#define TRIG_PIN 19  // Defina o pino TRIG
-#define ECHO_PIN 21  // Defina o pino ECHO
-#define DHT_PIN 23 //Defina o pino de dados o DHT /23
+#include "driver/gpio.h"
 
 
+//-----------------------------------------------------------------------------------------------------------------------
 // Área das macros
 //-----------------------------------------------------------------------------------------------------------------------
-//#define MODO 1 // Automatico
-#define MODO 0 // Manual
 
-#define ESP 1 
-
+// Wi-Fi
 #define WIFI_SSID "coqueiro"
 #define WIFI_PASS "amigos12"
 
-//#define WIFI_SSID "GUEST"
-//#define WIFI_PASS "cade204820"
+// ESP utilizado
+#define ESP 1
 
 
-    #define DEVICE_ID "65774aa82623fd911ab650c1" //ESP1
+// Dados do dispositivo no Wegnology
+#define DEVICE_ID "65774aa82623fd911ab650c1"
 
-#define W_ACCESS_KEY "76ac5ed2-ed18-4e96-9e02-d2dd572db083" //use a chave de acesso e a senha
+#define W_ACCESS_KEY "76ac5ed2-ed18-4e96-9e02-d2dd572db083"
+
 #define W_PASSWORD "f52797619b7205bc2ac8d796d80fd0cb23f988e882cd0b82d575b26939f78c1c"
 
-// Área de declaração de variáveis e protótipos de funções
+
+//-----------------------------------------------------------------------------------------------------------------------
+// Área de declaração de variáveis
 //-----------------------------------------------------------------------------------------------------------------------
 
 char *TAG = "HCF";
-uint8_t entradas, saidas = 0; //variáveis de controle de entradas e saídas
-char tecla = '-' ;
-char escrever[40];
-bool direcao = false;
-int angulo = 0;
-float temperatura = 0.0, umidade = 0.0;
 
-// Funções e ramos auxiliares
+
+// Variáveis de entradas e saídas
+uint8_t entradas, saidas = 0;
+
+
+// Variável para armazenar a tecla pressionada
+char tecla = '-';
+
+
+// Vetor para textos
+char escrever[40];
+
+
+//-----------------------------------------------------------------------------------------------------------------------
+// Variáveis dos sensores
 //-----------------------------------------------------------------------------------------------------------------------
 
+// Luminosidade
+float luminosidade = 0.0;
 
-// Função para receber dados e extrair o JSON do tópico command
-/*
-*   "name": "Ativando"
-*   "payload": {"LED":"true"}
-*   "time": "2025-05-05T16:15:22.263Z"
-*/
-void handler_led(const char *value) {
-    if (strcmp(value, "true") == 0) {
+
+// Resistência
+float resistencia = 0.0;
+
+
+// Corrente
+float corrente = 0.0;
+
+
+//-----------------------------------------------------------------------------------------------------------------------
+// Função para receber comandos do Wegnology
+//-----------------------------------------------------------------------------------------------------------------------
+
+void handler_led(const char *value)
+{
+    if (strcmp(value, "true") == 0)
+    {
         gpio_set_level(GPIO_NUM_2, 1);
-    } else {
+    }
+    else
+    {
         gpio_set_level(GPIO_NUM_2, 0);
     }
 }
 
 
-
+//-----------------------------------------------------------------------------------------------------------------------
 // Programa Principal
 //-----------------------------------------------------------------------------------------------------------------------
 
 void app_main(void)
 {
-    /////////////////////////////////////////////////////////////////////////////////////   Programa principal
+    /////////////////////////////////////////////////////////////////////////////////////
+    // Inicialização
+    /////////////////////////////////////////////////////////////////////////////////////
 
-    /////////////////////////////////////////////////////////////////////////////////////   Inicializações de periféricos (manter assim)
-
+    // Pisca os LEDs para indicar que o ESP32 iniciou
     piscar_LED(3,2,100,100);
-    iniciar_DHT(DHT_PIN);
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS); 
 
-    iniciar_wnology_wifi(WIFI_SSID, WIFI_PASS, DEVICE_ID, W_ACCESS_KEY, W_PASSWORD); //Inicializa o MQTT
-    wegnology_register_key_handler("LED", handler_led); //Regitra o atributo de subscrição do tópico command
+    /////////////////////////////////////////////////////////////////////////////////////
+    // Inicialização do Wi-Fi e Wegnology
+    /////////////////////////////////////////////////////////////////////////////////////
 
-    /////////////////////////////////////////////////////////////////////////////////////   Periféricos inicializados
+    iniciar_wnology_wifi(
+        WIFI_SSID,
+        WIFI_PASS,
+        DEVICE_ID,
+        W_ACCESS_KEY,
+        W_PASSWORD
+    );
 
-    while (1) {
-        float temperatura=0, umidade=0;
-        //char buffer[15];
-        if(DHT_temp_umidade(&temperatura, &umidade))
+
+    // Registra o comando LED
+    wegnology_register_key_handler("LED", handler_led);
+
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    // Loop principal
+    /////////////////////////////////////////////////////////////////////////////////////
+
+    while (1)
+    {
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // LEITURA DOS SENSORES
+        //////////////////////////////////////////////////////////////////////////////////
+
+        /*
+         * Aqui serão colocadas as leituras reais:
+         *
+         * luminosidade → LDR
+         *
+         * resistencia → circuito de resistência
+         *
+         * corrente → shunt
+         *
+         * Por enquanto deixei valores de exemplo
+         * para testar o envio para o Wegnology.
+         */
+
+
+        // Valor de exemplo da luminosidade
+        luminosidade = 500.0;
+
+
+        // Valor de exemplo da resistência
+        resistencia = 1000.0;
+
+
+        // Valor de exemplo da corrente
+        corrente = 0.100;
+
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Conversão dos valores para texto
+        //////////////////////////////////////////////////////////////////////////////////
+
+        char luminosidade_str[16];
+        char resistencia_str[16];
+        char corrente_str[16];
+
+
+        // Converte luminosidade para texto
+        snprintf(
+            luminosidade_str,
+            sizeof(luminosidade_str),
+            "%.2f",
+            luminosidade
+        );
+
+
+        // Converte resistência para texto
+        snprintf(
+            resistencia_str,
+            sizeof(resistencia_str),
+            "%.2f",
+            resistencia
+        );
+
+
+        // Converte corrente para texto
+        snprintf(
+            corrente_str,
+            sizeof(corrente_str),
+            "%.3f",
+            corrente
+        );
+
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Montagem dos atributos do Wegnology
+        //////////////////////////////////////////////////////////////////////////////////
+
+        /*
+         * Esses serão os nomes que aparecerão no Wegnology:
+         *
+         * Luminosidade
+         * Resistencia
+         * Corrente
+         */
+
+        const char *keys[] =
         {
-            // float temperatura = 25.0 + (rand() % 100) / 10.0f;  // valor simulado
-            // mqtt_wegnology_send_float("Temperatura", temperatura); // envio direto
-            // mqtt_wegnology_send_float("Umidade", umidade);
-
-            char temp_str[16], umid_str[16];
-            snprintf(temp_str, sizeof(temp_str), "%.2f", temperatura);
-            snprintf(umid_str, sizeof(umid_str), "%.2f", umidade);
-
-            const char *keys[] = { "Temperatura", "Umidade" }; //Chaves são os rótulos dos atributos do Wegnology
-            const char *values[] = { temp_str, umid_str }; //Os valores são os valores a serem passados para os atributos
-
-            mqtt_wegnology_publish_json(keys, values, 2, 1);
+            "Luminosidade",
+            "Resistencia",
+            "Corrente"
+        };
 
 
-            printf("Temperatura: %.2f Umidade: %.2f\n", temperatura, umidade);
-            ESP_LOGI(TAG, "Temperatura enviada: %.2f", temperatura);
-        }
-        else
+        // Valores que serão enviados
+        const char *values[] =
         {
-            printf("Erro sensor DHT\n");
-        }
-        vTaskDelay(pdMS_TO_TICKS(10000));  // publica a cada 10s
+            luminosidade_str,
+            resistencia_str,
+            corrente_str
+        };
+
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Envio dos dados
+        //////////////////////////////////////////////////////////////////////////////////
+
+        mqtt_wegnology_publish_json(
+            keys,
+            values,
+            3,
+            1
+        );
+
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Mostra os valores no monitor serial
+        //////////////////////////////////////////////////////////////////////////////////
+
+        printf(
+            "Luminosidade: %.2f | Resistencia: %.2f ohms | Corrente: %.3f A\n",
+            luminosidade,
+            resistencia,
+            corrente
+        );
+
+
+        // Mensagem no monitor serial
+        ESP_LOGI(
+            TAG,
+            "Dados enviados: L=%.2f | R=%.2f ohms | I=%.3f A",
+            luminosidade,
+            resistencia,
+            corrente
+        );
+
+
+        //////////////////////////////////////////////////////////////////////////////////
+        // Aguarda 10 segundos
+        //////////////////////////////////////////////////////////////////////////////////
+
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
-
-
-    /////////////////////////////////////////////////////////////////////////////////////   Fim do ramo principal
-    
 }
+```
